@@ -75,6 +75,38 @@ class PaypalRestGatewayFactoryTest extends \PHPUnit\Framework\TestCase
     /**
      * @test
      */
+    public function shouldAllowCreateGatewayWithCustomConfig()
+    {
+        $factory = new PaypalRestGatewayFactory();
+
+        $givenConfig = [
+            'log.LogLevel' => 'DEBUG',
+            'mode' => 'live',
+            'log.FileName' => '/foo/bar.log',
+            'http.ConnectionTimeOut' => '10',
+        ];
+
+        $gateway = $factory->create([
+            'client_id' => 'cId',
+            'client_secret' => 'cSecret',
+            'config' => $givenConfig,
+        ]);
+
+        $apis = $this->readAttribute($gateway, 'apis');
+        $apiContext = null;
+        foreach ($apis as $api) {
+            if ($api instanceof \PayPal\Rest\ApiContext) {
+                $apiContext = $api;
+            }
+        }
+
+        $this->assertNotNull($apiContext);
+        $this->assertArraySubset($givenConfig, $apiContext->getConfig());
+    }
+
+    /**
+     * @test
+     */
     public function shouldAllowCreateGatewayWithCustomApi()
     {
         $factory = new PaypalRestGatewayFactory();
@@ -136,7 +168,7 @@ class PaypalRestGatewayFactoryTest extends \PHPUnit\Framework\TestCase
         $this->assertInternalType('array', $config);
 
         $this->assertArrayHasKey('payum.default_options', $config);
-        $this->assertEquals(['client_id' => '', 'client_secret' => '', 'config_path' => ''], $config['payum.default_options']);
+        $this->assertEquals(['client_id' => '', 'client_secret' => '', 'config_path' => '', 'config' => []], $config['payum.default_options']);
     }
 
     /**
@@ -161,7 +193,7 @@ class PaypalRestGatewayFactoryTest extends \PHPUnit\Framework\TestCase
      * @test
      *
      * @expectedException \Payum\Core\Exception\LogicException
-     * @expectedExceptionMessage The client_id, client_secret, config_path fields are required.
+     * @expectedExceptionMessage The client_id, client_secret fields are required.
      */
     public function shouldThrowIfRequiredOptionsNotPassed()
     {
